@@ -17,10 +17,16 @@
     font-family: 'Space Grotesk', sans-serif;
 }
 
+html {
+    width: 100vw;
+    height: 100vh;
+    background: transparent !important;
+}
+
 body {
     width: 100vw;
     height: 100vh;
-    background: transparent;
+    background: transparent !important;
     display: flex;
     align-items: center;
     justify-content: center;
