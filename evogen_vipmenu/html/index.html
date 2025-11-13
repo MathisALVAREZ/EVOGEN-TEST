@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>VIP Menu</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="wrapper" id="vip-wrapper">
+        <div class="header">
+            <div class="identity">
+                <p class="subtitle">VIP</p>
+                <h1 id="player-name">Nom Prénom</h1>
+                <p class="coins"><i class="fa-solid fa-coins"></i> <span id="player-coins">0</span> coins</p>
+            </div>
+            <div class="subscription">
+                <p class="subtitle">Abonnement</p>
+                <h2 id="player-tier">Golden</h2>
+                <p id="player-remaining">Temps restant</p>
+                <span id="player-expiration" class="expiration">--/--/----</span>
+            </div>
+        </div>
+        <div class="tiers" id="tiers-container">
+            <!-- tiers injected dynamically -->
+        </div>
+        <button class="close-btn" id="close-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
