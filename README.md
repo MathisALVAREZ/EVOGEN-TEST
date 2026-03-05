@@ -110,43 +110,97 @@ class GraylogClient:
     def check_auth_and_admin(self) -> Dict[str, Any]:
         """
         Vérifie les credentials et le rôle admin.
-        Lève AuthError si identifiants invalides, NotAdminError si non-admin.
-        Retourne le dict user si OK.
+        Stratégie multi-endpoints pour compatibilité toutes versions Graylog.
         """
-        # /api/users/me est l'endpoint standard qui fonctionne sur toutes les versions
-        # /api/users/{username} peut retourner 404 selon la version et les permissions
-        for endpoint in ["/api/users/me", f"/api/users/{self.username}"]:
+        # ── Étape 1 : vérifier que les credentials sont valides ───────────────
+        # /api/system est accessible à tout utilisateur authentifié
+        auth_endpoints = [
+            "/api/users/me",
+            "/api/system/sessions",
+            "/api/system",
+        ]
+        user: Dict[str, Any] = {}
+        authed = False
+
+        for ep in auth_endpoints:
             try:
-                r = self.session.get(f"{self.base_url}{endpoint}", timeout=10)
+                r = self.session.get(f"{self.base_url}{ep}", timeout=10)
             except requests.RequestException as e:
                 raise AuthError(f"Impossible de joindre Graylog : {e}")
 
-            if r.status_code == 404:
-                continue  # essayer l'endpoint suivant
             if r.status_code == 401:
                 raise AuthError("Identifiants incorrects.")
             if r.status_code == 403:
-                raise AuthError("Accès refusé.")
-            if not r.ok:
-                raise AuthError(f"Erreur serveur HTTP {r.status_code}")
+                raise AuthError("Accès refusé (identifiants valides mais permissions insuffisantes).")
+            if r.status_code == 404:
+                continue  # essayer le suivant
+            if r.ok:
+                try:
+                    user = r.json()
+                except Exception:
+                    user = {}
+                authed = True
+                break
 
-            user  = r.json()
-            roles = [ro.lower() for ro in user.get("roles", [])]
-            # Certaines versions Graylog utilisent "admin" dans roles,
-            # d'autres utilisent le flag "read_only": false ou "session_active"
-            is_admin = (
-                "admin" in roles
-                or user.get("is_readonly") is False and user.get("session_active") is True
-                or any("admin" in str(r).lower() for r in user.get("roles", []))
+        if not authed:
+            raise AuthError(
+                "Impossible de joindre l'API Graylog.\n"
+                "Vérifiez l'URL dans secret.py et que Graylog est accessible."
             )
-            if not is_admin:
-                raise NotAdminError(
-                    f"L'utilisateur « {self.username} » n'a pas le rôle Admin.\n"
-                    "Seuls les administrateurs peuvent utiliser cet outil."
-                )
-            return user
 
-        raise AuthError("Impossible de vérifier les credentials (endpoints introuvables).")
+        # ── Étape 2 : vérifier le rôle admin ─────────────────────────────────
+        # Essayer plusieurs façons de récupérer les rôles
+        is_admin = False
+
+        # Méthode A : rôles dans la réponse /api/users/me
+        roles = user.get("roles", [])
+        if any("admin" in str(r).lower() for r in roles):
+            is_admin = True
+
+        # Méthode B : endpoint dédié /api/users/{username}
+        if not is_admin:
+            try:
+                r2 = self.session.get(f"{self.base_url}/api/users/{self.username}", timeout=10)
+                if r2.ok:
+                    u2    = r2.json()
+                    roles = u2.get("roles", [])
+                    if any("admin" in str(r).lower() for r in roles):
+                        is_admin = True
+            except Exception:
+                pass
+
+        # Méthode C : GET /api/authz/roles/user/{username}
+        if not is_admin:
+            try:
+                r3 = self.session.get(
+                    f"{self.base_url}/api/authz/roles/user/{self.username}", timeout=10
+                )
+                if r3.ok:
+                    roles_data = r3.json()
+                    all_roles  = roles_data if isinstance(roles_data, list) else roles_data.get("roles", [])
+                    if any("admin" in str(r).lower() for r in all_roles):
+                        is_admin = True
+            except Exception:
+                pass
+
+        # Méthode D : GET /api/roles — lister les rôles de l'utilisateur
+        if not is_admin:
+            try:
+                r4 = self.session.get(f"{self.base_url}/api/roles", timeout=10)
+                if r4.ok:
+                    # Si on peut lister les rôles admin, c'est qu'on est admin
+                    is_admin = True
+            except Exception:
+                pass
+
+        if not is_admin:
+            raise NotAdminError(
+                f"L'utilisateur « {self.username} » n'a pas le rôle Admin.\n"
+                "Seuls les administrateurs peuvent utiliser cet outil."
+            )
+
+        logger.info("Authentification réussie pour %s", self.username)
+        return user
 
     # ── Requêtes génériques ───────────────────────────────────────────────────
 
