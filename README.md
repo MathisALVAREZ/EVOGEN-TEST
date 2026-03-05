@@ -10,6 +10,7 @@ from tkinter import ttk, messagebox
 import requests
 import urllib3
 import json
+from urllib.parse import quote
 
 try:
     from secret import GRAYLOG_URL, GRAYLOG_USERNAME, GRAYLOG_PASSWORD
@@ -138,8 +139,11 @@ class GraylogClient:
         Définit la permission pour un utilisateur sur un stream.
         Retourne (succès, message).
         """
-        user_grn = f"{GRN_USER_PREFIX}{user_id}"
-        endpoint = f"/api/authz/shares/entities/{stream_id}/grantees/{user_grn}"
+        stream_grn     = f"{GRN_PREFIX}{stream_id}"
+        user_grn       = f"{GRN_USER_PREFIX}{user_id}"
+        stream_grn_enc = quote(stream_grn, safe="")
+        user_grn_enc   = quote(user_grn,   safe="")
+        endpoint = f"/api/authz/shares/entities/{stream_grn_enc}/grantees/{user_grn_enc}"
         payload = {"capability": capability}
 
         logger.info("PUT %s — payload: %s", endpoint, json.dumps(payload))
@@ -161,8 +165,11 @@ class GraylogClient:
 
     def remove_stream_permission(self, stream_id: str, user_id: str) -> Tuple[bool, str]:
         """Supprime la permission d'un utilisateur sur un stream."""
-        user_grn = f"{GRN_USER_PREFIX}{user_id}"
-        endpoint = f"/api/authz/shares/entities/{stream_id}/grantees/{user_grn}"
+        stream_grn     = f"{GRN_PREFIX}{stream_id}"
+        user_grn       = f"{GRN_USER_PREFIX}{user_id}"
+        stream_grn_enc = quote(stream_grn, safe="")
+        user_grn_enc   = quote(user_grn,   safe="")
+        endpoint = f"/api/authz/shares/entities/{stream_grn_enc}/grantees/{user_grn_enc}"
         url = f"{GRAYLOG_URL.rstrip('/')}{endpoint}"
         try:
             resp = self.session.delete(url, timeout=15)
