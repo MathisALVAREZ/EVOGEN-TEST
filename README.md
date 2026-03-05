@@ -575,7 +575,7 @@ class GraylogApp(tk.Tk):
                               command=self.stream_lb.yview, relief="flat", bd=0, width=8)
         sb_sy.grid(row=0, column=1, sticky="ns")
         sb_sx = tk.Scrollbar(lf, bg=C["bg2"], troughcolor=C["bg2"],
-                              orient="horizontal", command=self.stream_lb.xview, relief="flat", bd=0, height=8)
+                              orient="horizontal", command=self.stream_lb.xview, relief="flat", bd=0)
         sb_sx.grid(row=1, column=0, sticky="ew")
         self.stream_lb.configure(yscrollcommand=sb_sy.set, xscrollcommand=sb_sx.set)
 
