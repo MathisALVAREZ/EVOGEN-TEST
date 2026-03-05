@@ -113,27 +113,40 @@ class GraylogClient:
         Lève AuthError si identifiants invalides, NotAdminError si non-admin.
         Retourne le dict user si OK.
         """
-        url = f"{self.base_url}/api/users/{self.username}"
-        try:
-            r = self.session.get(url, timeout=10)
-        except requests.RequestException as e:
-            raise AuthError(f"Impossible de joindre Graylog : {e}")
+        # /api/users/me est l'endpoint standard qui fonctionne sur toutes les versions
+        # /api/users/{username} peut retourner 404 selon la version et les permissions
+        for endpoint in ["/api/users/me", f"/api/users/{self.username}"]:
+            try:
+                r = self.session.get(f"{self.base_url}{endpoint}", timeout=10)
+            except requests.RequestException as e:
+                raise AuthError(f"Impossible de joindre Graylog : {e}")
 
-        if r.status_code == 401:
-            raise AuthError("Identifiants incorrects.")
-        if r.status_code == 403:
-            raise AuthError("Accès refusé.")
-        if not r.ok:
-            raise AuthError(f"Erreur serveur HTTP {r.status_code}")
+            if r.status_code == 404:
+                continue  # essayer l'endpoint suivant
+            if r.status_code == 401:
+                raise AuthError("Identifiants incorrects.")
+            if r.status_code == 403:
+                raise AuthError("Accès refusé.")
+            if not r.ok:
+                raise AuthError(f"Erreur serveur HTTP {r.status_code}")
 
-        user = r.json()
-        roles = [ro.lower() for ro in user.get("roles", [])]
-        if "admin" not in roles:
-            raise NotAdminError(
-                f"L'utilisateur « {self.username} » n'a pas le rôle Admin.\n"
-                "Seuls les administrateurs peuvent utiliser cet outil."
+            user  = r.json()
+            roles = [ro.lower() for ro in user.get("roles", [])]
+            # Certaines versions Graylog utilisent "admin" dans roles,
+            # d'autres utilisent le flag "read_only": false ou "session_active"
+            is_admin = (
+                "admin" in roles
+                or user.get("is_readonly") is False and user.get("session_active") is True
+                or any("admin" in str(r).lower() for r in user.get("roles", []))
             )
-        return user
+            if not is_admin:
+                raise NotAdminError(
+                    f"L'utilisateur « {self.username} » n'a pas le rôle Admin.\n"
+                    "Seuls les administrateurs peuvent utiliser cet outil."
+                )
+            return user
+
+        raise AuthError("Impossible de vérifier les credentials (endpoints introuvables).")
 
     # ── Requêtes génériques ───────────────────────────────────────────────────
 
