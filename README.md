@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Graylog Permission Manager — Spirica Edition."""
+"""Graylog Permission Manager"""
 
 import base64
 import csv
@@ -35,7 +35,7 @@ GRN_USER_PREFIX: str       = "grn::::user:"
 CATEGORY_RE                = re.compile(r"^\[([^\]#][^\]]*)\]")
 LOG_FILE:        str       = "graylog_history.log"
 
-# ─── Palette Spirica ──────────────────────────────────────────────────────────
+# ─── Palette  ──────────────────────────────────────────────────────────
 C = {
     "bg":           "#F5F7FA",
     "bg_white":     "#FFFFFF",
@@ -334,7 +334,7 @@ class Tooltip:
 # ─── Barre de progression ─────────────────────────────────────────────────────
 
 class ProgressBar(tk.Frame):
-    """Barre de progression custom aux couleurs Spirica."""
+    """Barre de progression custom aux couleurs ."""
     def __init__(self, parent, **kw):
         super().__init__(parent, bg=C["progress_bg"], height=6, **kw)
         self.pack_propagate(False)
@@ -369,14 +369,14 @@ class LoginWindow(tk.Tk):
         self.eval('tk::PlaceWindow . center')
 
     def _build(self) -> None:
-        # Bandeau bleu Spirica en haut
+        
         hdr = tk.Frame(self, bg=C["sidebar"], height=140)
         hdr.pack(fill="x")
         hdr.pack_propagate(False)
 
-        tk.Label(hdr, text="SPIRICA", font=("Segoe UI", 26, "bold"),
+        tk.Label(hdr, text="GRAYLOG", font=("Segoe UI", 26, "bold"),
                  fg=C["text_light"], bg=C["sidebar"]).pack(pady=(28, 0))
-        tk.Label(hdr, text="Graylog Permission Manager",
+        tk.Label(hdr, text="Graylog Permission Manager By Alvarez Mathis",
                  font=("Segoe UI", 10), fg="#8BAAD4", bg=C["sidebar"]).pack()
 
         # Barre verte
@@ -887,7 +887,7 @@ class GraylogApp(tk.Tk):
 
     def __init__(self, client: GraylogClient, initial_env: str) -> None:
         super().__init__()
-        self.title("Graylog Permission Manager · Spirica")
+        self.title("Graylog Permission Manager")
         self.geometry("1380x880")
         self.minsize(1100, 680)
         self.configure(bg=C["bg"])
@@ -939,7 +939,7 @@ class GraylogApp(tk.Tk):
         # Logo
         logo = tk.Frame(sb, bg=C["sidebar"], pady=22, padx=20)
         logo.pack(fill="x")
-        tk.Label(logo, text="SPIRICA", font=("Segoe UI", 18, "bold"),
+        tk.Label(logo, text="GRAYLOG", font=("Segoe UI", 18, "bold"),
                  fg=C["text_light"], bg=C["sidebar"]).pack(anchor="w")
         tk.Label(logo, text="Permission Manager", font=("Segoe UI", 9),
                  fg="#8BAAD4", bg=C["sidebar"]).pack(anchor="w")
